@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>VTU.ng Login & Balance</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 500px;
+      margin: 50px auto;
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+    label, input, button {
+      display: block;
+      width: 100%;
+      margin-bottom: 10px;
+    }
+    input, button {
+      padding: 8px;
+      font-size: 16px;
+    }
+    code {
+      background-color: #f5f5f5;
+      padding: 5px;
+      display: block;
+      margin-top: 10px;
+      word-break: break-all;
+    }
+    #balance {
+      font-weight: bold;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h2>VTU.ng Login</h2>
+
+  <form id="loginForm">
+    <label>Username:
+      <input type="text" id="username" required>
+    </label>
+    <label>Password:
+      <input type="password" id="password" required>
+    </label>
+    <button type="submit">Login</button>
+  </form>
+
+  <div id="result"></div>
+  <button id="copyBtn" style="display:none;">Copy Token</button>
+  <button id="checkBalanceBtn" style="display:none;">Check Balance</button>
+  <div id="balance"></div>
+
+  <script>
+    let jwtToken = '';
+    
+    const form = document.getElementById('loginForm');
+    const resultDiv = document.getElementById('result');
+    const copyBtn = document.getElementById('copyBtn');
+    const checkBalanceBtn = document.getElementById('checkBalanceBtn');
+    const balanceDiv = document.getElementById('balance');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+
+      resultDiv.innerHTML = "Logging in...";
+
+      try {
+        const res = await fetch('https://vtu.ng/wp-json/jwt-auth/v1/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.token) {
+          jwtToken = data.token;
+          resultDiv.innerHTML = `
+            ✅ <strong>Login Successful!</strong><br>
+            <strong>Your Token:</strong>
+            <code id="tokenText">${data.token}</code>
+          `;
+          copyBtn.style.display = "block";
+          checkBalanceBtn.style.display = "block";
+        } else {
+          resultDiv.innerHTML = `<span style="color:red;">❌ ${data.message}</span>`;
+        }
+
+      } catch (error) {
+        resultDiv.innerHTML = `<span style="color:red;">❌ Network Error: ${error.message}</span>`;
+      }
+    });
+
+    copyBtn.addEventListener('click', () => {
+      const tokenText = document.getElementById('tokenText').innerText;
+      navigator.clipboard.writeText(tokenText).then(() => {
+        copyBtn.innerText = "Copied!";
+        setTimeout(() => copyBtn.innerText = "Copy Token", 2000);
+      });
+    });
+
+    checkBalanceBtn.addEventListener('click', async () => {
+      balanceDiv.innerHTML = "Checking balance...";
+      try {
+        const res = await fetch('https://vtu.ng/wp-json/api/v2/balance', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${jwtToken}`
+          }
+        });
+        const data = await res.json();
+        if (data && data.balance) {
+          balanceDiv.innerHTML = `💰 Your Balance: ₦${data.balance}`;
+        } else {
+          balanceDiv.innerHTML = `⚠️ Could not fetch balance.`;
+        }
+      } catch (err) {
+        balanceDiv.innerHTML = `❌ Error: ${err.message}`;
+      }
+    });
+  </script>
+</body>
+</html>
