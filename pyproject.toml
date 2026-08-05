@@ -1,12 +1,11 @@
 [project]
 name = "boijelux-v7"
-version = "7.0.0"
-description = "Boijelux v7 - Unlimited AI Agent with Full Internet Access"
-requires-python = ">=3.12"
+version = "7.1.0"
+description = "Boijelux v7.1 - Complete API"
+requires-python = ">=3.9"
 dependencies = [
-    "fastapi>=0.115.6",
-    "uvicorn[standard]>=0.34.0",
-    "httpx>=0.27.0",
+    "fastapi>=0.100.0",
+    "uvicorn>=0.20.0",
 ]
 
 [tool.vercel]
