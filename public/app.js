@@ -1,10 +1,11 @@
 /**
- * Unlimited AI Agent - Complete Frontend
+ * Boijelux v7 - Complete Frontend Logic
  * Deployed at: https://ai.taagc.site
  */
 
 const API_BASE = '/api';
 const DOMAIN = 'ai.taagc.site';
+const APP_VERSION = '7.0.0';
 let refreshTimer = null;
 let settings = {};
 
@@ -13,8 +14,7 @@ let settings = {};
 // ============================================
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log(`🤖 Unlimited AI Agent - ${DOMAIN}`);
-    
+    console.log(`🚀 Boijelux v${APP_VERSION} - ${DOMAIN}`);
     loadSettings();
     loadAllData();
     setupNavigation();
@@ -31,14 +31,10 @@ function setupNavigation() {
         link.addEventListener('click', (e) => {
             e.preventDefault();
             const page = link.dataset.page;
-            
             document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
             link.classList.add('active');
-            
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.getElementById(`page-${page}`).classList.add('active');
-            
-            // Close mobile nav
             document.getElementById('navLinks').classList.remove('open');
         });
     });
@@ -70,20 +66,14 @@ async function loadStats() {
     try {
         const response = await fetch(`${API_BASE}/status`);
         const data = await response.json();
-        
         if (data.status === 'success') {
             const agent = data.agent || {};
-            
             document.getElementById('statTasks').textContent = agent.tasks_completed || 0;
             document.getElementById('statDomains').textContent = agent.domains?.length || 14;
             document.getElementById('statKnowledge').textContent = 0;
-            
-            const successRate = 0.87;
-            document.getElementById('statSuccess').textContent = (successRate * 100).toFixed(0) + '%';
-            
             document.getElementById('statBots').textContent = agent.bots_created || 0;
             document.getElementById('statUptime').textContent = formatUptime(agent.uptime || 0);
-            
+            document.getElementById('statVersion').textContent = agent.version || APP_VERSION;
             document.getElementById('statusDot').className = 'status-dot online';
         }
     } catch (error) {
@@ -100,7 +90,6 @@ async function loadStatus() {
     try {
         const response = await fetch(`${API_BASE}/status`);
         const data = await response.json();
-        
         if (data.status === 'success') {
             displayStatus(data);
         } else {
@@ -114,7 +103,6 @@ async function loadStatus() {
 function displayStatus(data) {
     const container = document.getElementById('statusContainer');
     const agent = data.agent || {};
-    
     container.innerHTML = `
         <div class="status-grid">
             <div><strong>Domain:</strong> ${data.domain || DOMAIN}</div>
@@ -124,7 +112,7 @@ function displayStatus(data) {
             <div><strong>Bots:</strong> ${agent.bots_created || 0}</div>
             <div><strong>Uptime:</strong> ${formatUptime(agent.uptime || 0)}</div>
             <div><strong>Capabilities:</strong> ${agent.capabilities?.length || 0}</div>
-            <div><strong>Version:</strong> ${agent.version || '2.0.0'}</div>
+            <div><strong>Version:</strong> ${agent.version || APP_VERSION}</div>
         </div>
     `;
 }
@@ -137,18 +125,15 @@ function formatUptime(seconds) {
 }
 
 // ============================================
-// 6. LOAD TASKS
+// 6. TASKS
 // ============================================
 
 async function loadTasks() {
     try {
         const response = await fetch(`${API_BASE}/tasks`);
         const data = await response.json();
-        
         if (data.status === 'success') {
             displayTasks(data.tasks, data.count);
-        } else {
-            displayError('tasksContainer', 'Failed to load tasks');
         }
     } catch (error) {
         displayError('tasksContainer', 'Error: ' + error.message);
@@ -157,16 +142,12 @@ async function loadTasks() {
 
 function displayTasks(tasks, count) {
     const container = document.getElementById('tasksContainer');
-    
     if (!tasks || tasks.length === 0) {
         container.innerHTML = `<div class="empty-state"><span class="icon">📋</span><p>No tasks yet</p></div>`;
         return;
     }
-    
     let html = `<div class="task-count">📋 ${count || tasks.length} tasks</div>`;
-    const recent = tasks.slice(-5).reverse();
-    
-    recent.forEach(task => {
+    tasks.slice(-5).reverse().forEach(task => {
         const statusClass = task.status || 'pending';
         html += `
             <div class="task-item">
@@ -182,7 +163,6 @@ function displayTasks(tasks, count) {
             </div>
         `;
     });
-    
     container.innerHTML = html;
 }
 
@@ -190,25 +170,19 @@ async function loadAllTasks() {
     try {
         const response = await fetch(`${API_BASE}/tasks`);
         const data = await response.json();
-        
         if (data.status === 'success') {
             displayAllTasks(data.tasks, data.count);
         }
-    } catch (error) {
-        console.error('Error loading all tasks:', error);
-    }
+    } catch (error) { console.error('Error loading all tasks:', error); }
 }
 
 function displayAllTasks(tasks, count) {
     const container = document.getElementById('allTasksContainer');
-    
     if (!tasks || tasks.length === 0) {
         container.innerHTML = `<div class="empty-state"><span class="icon">📋</span><p>No tasks found</p></div>`;
         return;
     }
-    
     let html = `<div class="task-count">📋 Total: ${count || tasks.length} tasks</div>`;
-    
     tasks.slice().reverse().forEach(task => {
         const statusClass = task.status || 'pending';
         html += `
@@ -225,7 +199,6 @@ function displayAllTasks(tasks, count) {
             </div>
         `;
     });
-    
     container.innerHTML = html;
 }
 
@@ -236,15 +209,12 @@ function displayAllTasks(tasks, count) {
 async function processTask() {
     const input = document.getElementById('taskInput');
     const priority = document.getElementById('taskPriority');
-    const deadline = document.getElementById('taskDeadline');
+    const useInternet = document.getElementById('taskInternet')?.checked || false;
     const task = input.value.trim();
     const resultDiv = document.getElementById('taskResult');
     const btn = document.querySelector('#page-tasks .task-form button');
     
-    if (!task) {
-        showResult(resultDiv, '❌ Please enter a task description', 'error');
-        return;
-    }
+    if (!task) { showResult(resultDiv, '❌ Please enter a task', 'error'); return; }
     
     btn.disabled = true;
     btn.textContent = '⏳ Processing...';
@@ -258,33 +228,29 @@ async function processTask() {
                 task: task,
                 context: {
                     priority: parseInt(priority.value),
-                    deadline: deadline.value || null
+                    use_internet: useInternet
                 }
             })
         });
-        
         const data = await response.json();
-        
         if (data.status === 'success') {
             showResult(resultDiv, `
 ✅ Task processed successfully!
 
 📋 Task: ${task}
+🌐 Internet: ${useInternet ? 'Enabled' : 'Disabled'}
 🎯 Result: ${data.result?.success ? 'Success' : 'Failed'}
 
 ${JSON.stringify(data.result, null, 2)}
             `, 'success');
-            
             loadAllData();
             input.value = '';
-            deadline.value = '';
         } else {
             showResult(resultDiv, `❌ Error: ${data.message}`, 'error');
         }
     } catch (error) {
         showResult(resultDiv, `❌ Error: ${error.message}`, 'error');
     }
-    
     btn.disabled = false;
     btn.textContent = '▶ Process Task';
 }
@@ -295,10 +261,7 @@ async function processQuickTask() {
     const resultDiv = document.getElementById('quickTaskResult');
     const btn = document.querySelector('.quick-task button');
     
-    if (!task) {
-        showResult(resultDiv, '❌ Please enter a task', 'error');
-        return;
-    }
+    if (!task) { showResult(resultDiv, '❌ Please enter a task', 'error'); return; }
     
     btn.disabled = true;
     btn.textContent = '⏳...';
@@ -308,15 +271,11 @@ async function processQuickTask() {
         const response = await fetch(`${API_BASE}/task`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ task })
+            body: JSON.stringify({ task, context: { use_internet: true } })
         });
-        
         const data = await response.json();
-        
         if (data.status === 'success') {
-            showResult(resultDiv, `
-✅ ${task}\n${JSON.stringify(data.result, null, 2)}
-            `, 'success');
+            showResult(resultDiv, `✅ ${task}\n${JSON.stringify(data.result, null, 2)}`, 'success');
             loadAllData();
             input.value = '';
         } else {
@@ -325,7 +284,6 @@ async function processQuickTask() {
     } catch (error) {
         showResult(resultDiv, `❌ ${error.message}`, 'error');
     }
-    
     btn.disabled = false;
     btn.textContent = '▶ Execute';
 }
@@ -341,10 +299,7 @@ async function createBot() {
     const resultDiv = document.getElementById('botResult');
     const btn = document.querySelector('#page-bots .bot-form button');
     
-    if (!requirements) {
-        showResult(resultDiv, '❌ Please enter bot requirements', 'error');
-        return;
-    }
+    if (!requirements) { showResult(resultDiv, '❌ Please enter bot requirements', 'error'); return; }
     
     btn.disabled = true;
     btn.textContent = '⏳ Creating...';
@@ -354,15 +309,9 @@ async function createBot() {
         const response = await fetch(`${API_BASE}/create_bot`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                requirements,
-                location,
-                name: name || undefined
-            })
+            body: JSON.stringify({ requirements, location, name: name || undefined })
         });
-        
         const data = await response.json();
-        
         if (data.status === 'success') {
             const bot = data.bot || {};
             showResult(resultDiv, `
@@ -372,7 +321,6 @@ async function createBot() {
 📍 Location: ${bot.location || 'local'}
 📝 Requirements: ${requirements}
             `, 'success');
-            
             loadAllData();
             document.getElementById('botRequirements').value = '';
             document.getElementById('botName').value = '';
@@ -382,7 +330,6 @@ async function createBot() {
     } catch (error) {
         showResult(resultDiv, `❌ Error: ${error.message}`, 'error');
     }
-    
     btn.disabled = false;
     btn.textContent = '🤖 Create Bot';
 }
@@ -395,15 +342,12 @@ async function loadBots() {
     try {
         const response = await fetch(`${API_BASE}/bots`);
         const data = await response.json();
-        
         const container = document.getElementById('botsContainer');
         const bots = data.bots || [];
-        
         if (bots.length === 0) {
             container.innerHTML = `<div class="empty-state"><span class="icon">🤖</span><p>No bots created yet</p></div>`;
             return;
         }
-        
         let html = '';
         bots.slice().reverse().forEach(bot => {
             html += `
@@ -413,11 +357,8 @@ async function loadBots() {
                 </div>
             `;
         });
-        
         container.innerHTML = html;
-    } catch (error) {
-        console.error('Error loading bots:', error);
-    }
+    } catch (error) { console.error('Error loading bots:', error); }
 }
 
 // ============================================
@@ -431,10 +372,7 @@ async function learnText() {
     const resultDiv = document.getElementById('learnResult');
     const btn = document.querySelector('#page-learn .card:first-child button');
     
-    if (!text) {
-        showResult(resultDiv, '❌ Please enter text to learn', 'error');
-        return;
-    }
+    if (!text) { showResult(resultDiv, '❌ Please enter text to learn', 'error'); return; }
     
     btn.disabled = true;
     btn.textContent = '⏳ Learning...';
@@ -444,15 +382,9 @@ async function learnText() {
         const response = await fetch(`${API_BASE}/learn`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                text,
-                category,
-                source: source || 'user_input'
-            })
+            body: JSON.stringify({ text, category, source: source || 'user_input' })
         });
-        
         const data = await response.json();
-        
         if (data.status === 'success') {
             showResult(resultDiv, `
 ✅ Learning successful!
@@ -461,7 +393,6 @@ async function learnText() {
 📖 Source: ${data.knowledge?.source || source || 'user_input'}
 📝 Learned: ${data.knowledge?.text || text.substring(0, 200) + '...'}
             `, 'success');
-            
             loadAllData();
             document.getElementById('learnText').value = '';
             document.getElementById('learnSource').value = '';
@@ -471,7 +402,6 @@ async function learnText() {
     } catch (error) {
         showResult(resultDiv, `❌ Error: ${error.message}`, 'error');
     }
-    
     btn.disabled = false;
     btn.textContent = '📚 Learn';
 }
@@ -485,15 +415,12 @@ async function loadKnowledge() {
         const response = await fetch(`${API_BASE}/knowledge`);
         const data = await response.json();
         const container = document.getElementById('knowledgeContainer');
-        
         if (data.status === 'success') {
             const items = data.knowledge || [];
-            
             if (items.length === 0) {
                 container.innerHTML = `<div class="empty-state"><span class="icon">📚</span><p>No knowledge yet. Teach the AI above!</p></div>`;
                 return;
             }
-            
             let html = `<div class="task-count">📚 ${items.length} knowledge items</div>`;
             items.slice().reverse().forEach(item => {
                 html += `
@@ -505,13 +432,138 @@ async function loadKnowledge() {
             });
             container.innerHTML = html;
         }
-    } catch (error) {
-        console.error('Error loading knowledge:', error);
-    }
+    } catch (error) { console.error('Error loading knowledge:', error); }
 }
 
 // ============================================
-// 12. SYSTEM STATUS
+// 12. INTERNET FUNCTIONS
+// ============================================
+
+async function searchWeb() {
+    const query = document.getElementById('searchInput')?.value;
+    const resultDiv = document.getElementById('searchResult');
+    if (!query) { showResult(resultDiv, '❌ Please enter a search query', 'error'); return; }
+    
+    resultDiv.style.display = 'block';
+    resultDiv.innerHTML = '⏳ Searching the web...';
+    
+    try {
+        const response = await fetch(`${API_BASE}/search`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query, max_results: 10 })
+        });
+        const data = await response.json();
+        if (data.status === 'success' && data.data?.results) {
+            let html = `🔍 Search Results for: "${query}"\n\n`;
+            data.data.results.forEach((r, i) => {
+                html += `${i+1}. ${r.title || 'Untitled'}\n   ${r.snippet || 'No description'}\n   🔗 ${r.url}\n\n`;
+            });
+            showResult(resultDiv, html, 'success');
+        } else {
+            showResult(resultDiv, `❌ Search failed: ${data.data?.error || 'Unknown error'}`, 'error');
+        }
+    } catch (error) {
+        showResult(resultDiv, `❌ Error: ${error.message}`, 'error');
+    }
+}
+
+async function fetchUrl() {
+    const url = document.getElementById('urlInput')?.value;
+    const resultDiv = document.getElementById('urlResult');
+    if (!url) { showResult(resultDiv, '❌ Please enter a URL', 'error'); return; }
+    
+    resultDiv.style.display = 'block';
+    resultDiv.innerHTML = '⏳ Fetching URL...';
+    
+    try {
+        const response = await fetch(`${API_BASE}/fetch`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url, max_length: 5000 })
+        });
+        const data = await response.json();
+        if (data.status === 'success' && data.data?.success) {
+            const content = data.data.content || 'No content extracted';
+            showResult(resultDiv, `📄 ${data.data.title || 'Untitled'}\n\n${content.substring(0, 2000)}...`, 'success');
+        } else {
+            showResult(resultDiv, `❌ Fetch failed: ${data.data?.error || 'Unknown error'}`, 'error');
+        }
+    } catch (error) {
+        showResult(resultDiv, `❌ Error: ${error.message}`, 'error');
+    }
+}
+
+async function chatWithInternet() {
+    const message = document.getElementById('chatInput')?.value;
+    const useInternet = document.getElementById('chatInternet')?.checked || false;
+    const resultDiv = document.getElementById('chatResult');
+    if (!message) { showResult(resultDiv, '❌ Please enter a message', 'error'); return; }
+    
+    resultDiv.style.display = 'block';
+    resultDiv.innerHTML = '⏳ Processing...';
+    
+    try {
+        const response = await fetch(`${API_BASE}/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message, use_internet: useInternet })
+        });
+        const data = await response.json();
+        if (data.status === 'success') {
+            let responseText = data.chat?.response || 'No response';
+            if (data.chat?.internet_results) {
+                responseText += '\n\n🔍 Internet Results:\n';
+                data.chat.internet_results.forEach((r, i) => {
+                    responseText += `${i+1}. ${r.title || 'Untitled'}\n   ${r.snippet || ''}\n`;
+                });
+            }
+            showResult(resultDiv, responseText, 'success');
+        } else {
+            showResult(resultDiv, `❌ Error: ${data.message}`, 'error');
+        }
+    } catch (error) {
+        showResult(resultDiv, `❌ Error: ${error.message}`, 'error');
+    }
+}
+
+async function generateCode() {
+    const description = document.getElementById('codeInput')?.value;
+    const language = document.getElementById('codeLanguage')?.value || 'python';
+    const framework = document.getElementById('codeFramework')?.value;
+    const resultDiv = document.getElementById('codeResult');
+    
+    if (!description) { showResult(resultDiv, '❌ Please enter a code description', 'error'); return; }
+    
+    resultDiv.style.display = 'block';
+    resultDiv.innerHTML = '⏳ Generating code...';
+    
+    try {
+        const response = await fetch(`${API_BASE}/generate_code`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ description, language, framework: framework || null })
+        });
+        const data = await response.json();
+        if (data.status === 'success' && data.data?.success) {
+            showResult(resultDiv, `💻 Generated ${language.toUpperCase()} Code\n\n${data.data.code}`, 'success');
+        } else {
+            showResult(resultDiv, `❌ Code generation failed: ${data.data?.error || 'Unknown error'}`, 'error');
+        }
+    } catch (error) {
+        showResult(resultDiv, `❌ Error: ${error.message}`, 'error');
+    }
+}
+
+function showInternetTab(tab) {
+    document.querySelectorAll('.internet-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.internet-tabs .tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(`internet-${tab}`).classList.add('active');
+    event.target.classList.add('active');
+}
+
+// ============================================
+// 13. SYSTEM STATUS
 // ============================================
 
 async function loadSystemStatus() {
@@ -521,16 +573,12 @@ async function loadSystemStatus() {
             fetch(`${API_BASE}/version`),
             fetch(`${API_BASE}/metrics`)
         ]);
-        
-        const [health, version, metrics] = await Promise.all(
-            responses.map(r => r.json())
-        );
-        
+        const [health, version, metrics] = await Promise.all(responses.map(r => r.json()));
         const container = document.getElementById('systemStatus');
         container.innerHTML = `
             <div class="system-grid">
                 <div><strong>Status:</strong> <span style="color:#00cc88;">${health.status || 'healthy'}</span></div>
-                <div><strong>Version:</strong> ${version.version || '2.0.0'}</div>
+                <div><strong>Version:</strong> ${version.version || APP_VERSION}</div>
                 <div><strong>Deployment:</strong> ${version.deployment || 'Vercel'}</div>
                 <div><strong>Uptime:</strong> ${formatUptime(version.uptime || 0)}</div>
                 <div><strong>Tasks:</strong> ${metrics.tasks_total || 0}</div>
@@ -539,13 +587,11 @@ async function loadSystemStatus() {
                 <div><strong>Timestamp:</strong> ${new Date().toLocaleString()}</div>
             </div>
         `;
-    } catch (error) {
-        console.error('Error loading system status:', error);
-    }
+    } catch (error) { console.error('Error loading system status:', error); }
 }
 
 // ============================================
-// 13. REFRESH
+// 14. REFRESH & SETTINGS
 // ============================================
 
 function refreshData() {
@@ -555,12 +601,8 @@ function refreshData() {
     setTimeout(() => btn.classList.remove('spinning'), 800);
 }
 
-// ============================================
-// 14. SETTINGS
-// ============================================
-
 function loadSettings() {
-    const saved = localStorage.getItem('aiAgentSettings');
+    const saved = localStorage.getItem('boijeluxSettings');
     if (saved) {
         settings = JSON.parse(saved);
         document.getElementById('refreshInterval').value = settings.refreshInterval || 30;
@@ -574,11 +616,9 @@ function saveSettings() {
         refreshInterval: parseInt(document.getElementById('refreshInterval').value) || 30,
         theme: document.getElementById('themeSelect').value
     };
-    
-    localStorage.setItem('aiAgentSettings', JSON.stringify(settings));
+    localStorage.setItem('boijeluxSettings', JSON.stringify(settings));
     applyTheme(settings.theme);
     setupAutoRefresh();
-    
     showResult(document.getElementById('learnResult'), '✅ Settings saved successfully!', 'success');
 }
 
@@ -586,49 +626,39 @@ function applyTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
 }
 
-// ============================================
-// 15. AUTO-REFRESH
-// ============================================
-
 function setupAutoRefresh() {
-    if (refreshTimer) {
-        clearInterval(refreshTimer);
-    }
-    
+    if (refreshTimer) clearInterval(refreshTimer);
     const interval = (parseInt(document.getElementById('refreshInterval')?.value) || 30) * 1000;
-    
-    refreshTimer = setInterval(() => {
-        if (!document.hidden) {
-            loadAllData();
-        }
-    }, interval);
+    refreshTimer = setInterval(() => { if (!document.hidden) loadAllData(); }, interval);
 }
 
 // ============================================
-// 16. KEYBOARD SHORTCUTS
+// 15. KEYBOARD SHORTCUTS
 // ============================================
 
 function setupKeyboardShortcuts() {
     document.getElementById('quickTaskInput').addEventListener('keydown', (e) => {
         if (e.key === 'Enter') { e.preventDefault(); processQuickTask(); }
     });
-    
     document.getElementById('taskInput').addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && e.ctrlKey) { e.preventDefault(); processTask(); }
     });
-    
     document.getElementById('learnText').addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && e.ctrlKey) { e.preventDefault(); learnText(); }
     });
-    
+    document.getElementById('searchInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); searchWeb(); }
+    });
+    document.getElementById('chatInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && e.ctrlKey) { e.preventDefault(); chatWithInternet(); }
+    });
     document.addEventListener('keydown', (e) => {
         if (e.ctrlKey && e.shiftKey && e.key === 'R') {
             e.preventDefault();
             clearCacheAndRefresh();
         }
-        
         if (e.ctrlKey && !e.shiftKey) {
-            const pages = ['dashboard', 'tasks', 'bots', 'learn', 'settings'];
+            const pages = ['dashboard', 'tasks', 'bots', 'learn', 'internet', 'settings'];
             const idx = parseInt(e.key) - 1;
             if (idx >= 0 && idx < pages.length) {
                 e.preventDefault();
@@ -640,14 +670,12 @@ function setupKeyboardShortcuts() {
 }
 
 // ============================================
-// 17. CACHE MANAGEMENT
+// 16. CACHE MANAGEMENT
 // ============================================
 
 function clearCacheAndRefresh() {
     if (confirm('Clear all cache and refresh?')) {
-        if ('caches' in window) {
-            caches.keys().then(keys => keys.forEach(key => caches.delete(key)));
-        }
+        if ('caches' in window) caches.keys().then(keys => keys.forEach(key => caches.delete(key)));
         localStorage.clear();
         sessionStorage.clear();
         document.cookie.split(";").forEach(c => {
@@ -668,15 +696,12 @@ function clearAllData() {
 }
 
 function exportData() {
-    const data = {
-        settings: settings,
-        timestamp: new Date().toISOString()
-    };
+    const data = { settings, version: APP_VERSION, timestamp: new Date().toISOString() };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `ai_agent_data_${new Date().toISOString().slice(0,10)}.json`;
+    a.download = `boijelux_data_${new Date().toISOString().slice(0,10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
 }
@@ -693,7 +718,7 @@ function importData() {
                 try {
                     const data = JSON.parse(event.target.result);
                     if (data.settings) {
-                        localStorage.setItem('aiAgentSettings', JSON.stringify(data.settings));
+                        localStorage.setItem('boijeluxSettings', JSON.stringify(data.settings));
                         loadSettings();
                     }
                     alert('✅ Data imported successfully!');
@@ -709,7 +734,7 @@ function importData() {
 }
 
 // ============================================
-// 18. UTILITY FUNCTIONS
+// 17. UTILITY FUNCTIONS
 // ============================================
 
 function showResult(container, message, type = 'success') {
@@ -719,28 +744,27 @@ function showResult(container, message, type = 'success') {
 }
 
 function displayError(containerId, message) {
-    const container = document.getElementById(containerId);
-    container.innerHTML = `<div class="error-state"><p>❌ ${message}</p></div>`;
+    document.getElementById(containerId).innerHTML = `<div class="error-state"><p>❌ ${message}</p></div>`;
 }
 
 function formatDate(dateStr) {
     if (!dateStr) return 'N/A';
-    try {
-        const date = new Date(dateStr);
-        return date.toLocaleString();
-    } catch {
-        return dateStr;
-    }
+    try { return new Date(dateStr).toLocaleString(); } catch { return dateStr; }
 }
 
 // ============================================
-// 19. EXPOSE TO GLOBAL SCOPE
+// 18. EXPOSE TO GLOBAL SCOPE
 // ============================================
 
 window.processTask = processTask;
 window.processQuickTask = processQuickTask;
 window.createBot = createBot;
 window.learnText = learnText;
+window.searchWeb = searchWeb;
+window.fetchUrl = fetchUrl;
+window.chatWithInternet = chatWithInternet;
+window.generateCode = generateCode;
+window.showInternetTab = showInternetTab;
 window.refreshData = refreshData;
 window.clearCacheAndRefresh = clearCacheAndRefresh;
 window.clearAllData = clearAllData;
@@ -749,8 +773,8 @@ window.importData = importData;
 window.saveSettings = saveSettings;
 window.toggleMobileNav = toggleMobileNav;
 
-console.log('🚀 Unlimited AI Agent frontend loaded');
+console.log(`🚀 Boijelux v${APP_VERSION} loaded`);
 console.log('📌 Keyboard shortcuts:');
-console.log('  Ctrl+1-5  - Navigate pages');
+console.log('  Ctrl+1-6  - Navigate pages');
 console.log('  Ctrl+Enter - Submit task');
 console.log('  Ctrl+Shift+R - Clear cache and refresh');
