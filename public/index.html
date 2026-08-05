@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unlimited AI Agent</title>
+    
+    <!-- Meta Tags -->
+    <meta name="description" content="Unlimited Autonomous AI Agent - Any Task, Any Domain">
+    <meta name="theme-color" content="#00cc88">
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="Unlimited AI Agent">
+    <meta property="og:description" content="Unlimited Autonomous AI Agent - Any Task, Any Domain">
+    <meta property="og:url" content="https://ai.taagc.site">
+    <meta property="og:type" content="website">
+    
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="style.css?v=3.0.0">
+</head>
+<body>
+    <div id="app">
+        <!-- Navigation -->
+        <nav class="navbar" id="navbar">
+            <div class="nav-container">
+                <div class="nav-brand">
+                    <span class="logo-icon">🤖</span>
+                    <span class="logo-text">Unlimited AI</span>
+                    <span class="version-badge">v2.0</span>
+                </div>
+                
+                <div class="nav-links" id="navLinks">
+                    <a href="#" class="nav-link active" data-page="dashboard">
+                        <span class="nav-icon">📊</span> Dashboard
+                    </a>
+                    <a href="#" class="nav-link" data-page="tasks">
+                        <span class="nav-icon">📋</span> Tasks
+                    </a>
+                    <a href="#" class="nav-link" data-page="bots">
+                        <span class="nav-icon">🤖</span> Bots
+                    </a>
+                    <a href="#" class="nav-link" data-page="learn">
+                        <span class="nav-icon">📖</span> Learn
+                    </a>
+                    <a href="#" class="nav-link" data-page="settings">
+                        <span class="nav-icon">⚙️</span> Settings
+                    </a>
+                </div>
+                
+                <div class="nav-actions">
+                    <button class="btn-refresh" onclick="refreshData()" title="Refresh Data">
+                        🔄
+                    </button>
+                    <span class="status-dot online" id="statusDot"></span>
+                </div>
+                
+                <button class="mobile-toggle" id="mobileToggle" onclick="toggleMobileNav()">
+                    ☰
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            
+            <!-- ============================================ -->
+            <!-- PAGE: DASHBOARD -->
+            <!-- ============================================ -->
+            <section id="page-dashboard" class="page active">
+                <!-- Stats Grid -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">📊</div>
+                        <div class="stat-value" id="statTasks">0</div>
+                        <div class="stat-label">Tasks Completed</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🌐</div>
+                        <div class="stat-value" id="statDomains">14</div>
+                        <div class="stat-label">Domains</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🧠</div>
+                        <div class="stat-value" id="statKnowledge">0</div>
+                        <div class="stat-label">Knowledge Items</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🎯</div>
+                        <div class="stat-value" id="statSuccess">0%</div>
+                        <div class="stat-label">Success Rate</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🤖</div>
+                        <div class="stat-value" id="statBots">0</div>
+                        <div class="stat-label">Bots Created</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">⏱️</div>
+                        <div class="stat-value" id="statUptime">0s</div>
+                        <div class="stat-label">Uptime</div>
+                    </div>
+                </div>
+
+                <!-- Status & Quick Task -->
+                <div class="grid-2">
+                    <div class="card">
+                        <h2>📊 Agent Status</h2>
+                        <div id="statusContainer">
+                            <div class="loading">Loading...</div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h2>🚀 Quick Task</h2>
+                        <div class="quick-task">
+                            <input type="text" id="quickTaskInput" placeholder="Enter a task...">
+                            <button onclick="processQuickTask()">▶ Execute</button>
+                        </div>
+                        <div id="quickTaskResult"></div>
+                    </div>
+                </div>
+
+                <!-- Recent Tasks -->
+                <div class="card">
+                    <h2>📋 Recent Tasks</h2>
+                    <div id="tasksContainer">
+                        <div class="loading">Loading tasks...</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- PAGE: TASKS -->
+            <!-- ============================================ -->
+            <section id="page-tasks" class="page">
+                <div class="card">
+                    <h2>📋 All Tasks</h2>
+                    <div id="allTasksContainer">
+                        <div class="loading">Loading tasks...</div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h2>➕ Add New Task</h2>
+                    <div class="task-form">
+                        <div class="form-group">
+                            <label for="taskInput">Task Description</label>
+                            <textarea id="taskInput" placeholder="Describe what you want the AI to do..."></textarea>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="taskPriority">Priority</label>
+                                <select id="taskPriority">
+                                    <option value="1">Low</option>
+                                    <option value="3" selected>Medium</option>
+                                    <option value="5">High</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="taskDeadline">Deadline</label>
+                                <input type="date" id="taskDeadline">
+                            </div>
+                        </div>
+                        <button onclick="processTask()">▶ Process Task</button>
+                    </div>
+                    <div id="taskResult"></div>
+                </div>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- PAGE: BOTS -->
+            <!-- ============================================ -->
+            <section id="page-bots" class="page">
+                <div class="card">
+                    <h2>🤖 Created Bots</h2>
+                    <div id="botsContainer">
+                        <div class="empty-state">
+                            <span class="icon">🤖</span>
+                            <p>No bots created yet</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>🔧 Create New Bot</h2>
+                    <div class="bot-form">
+                        <div class="form-group">
+                            <label for="botRequirements">Bot Requirements</label>
+                            <textarea id="botRequirements" placeholder="What should the bot do?"></textarea>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="botLocation">Deploy Location</label>
+                                <select id="botLocation">
+                                    <option value="local">Local</option>
+                                    <option value="cloud">Cloud</option>
+                                    <option value="remote">Remote Server</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="botName">Bot Name</label>
+                                <input type="text" id="botName" placeholder="MyBot">
+                            </div>
+                        </div>
+                        <button onclick="createBot()">🤖 Create Bot</button>
+                    </div>
+                    <div id="botResult"></div>
+                </div>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- PAGE: LEARN -->
+            <!-- ============================================ -->
+            <section id="page-learn" class="page">
+                <div class="card">
+                    <h2>📖 Teach the AI</h2>
+                    <p class="card-subtitle">Paste text for the AI to learn from.</p>
+                    
+                    <div class="form-group">
+                        <label for="learnText">Text to Learn</label>
+                        <textarea id="learnText" rows="6" placeholder="Paste text you want the AI to learn from..."></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="learnCategory">Category</label>
+                            <select id="learnCategory">
+                                <option value="general">General</option>
+                                <option value="business">Business</option>
+                                <option value="finance">Finance</option>
+                                <option value="healthcare">Healthcare</option>
+                                <option value="technology">Technology</option>
+                                <option value="legal">Legal</option>
+                                <option value="creative">Creative</option>
+                                <option value="science">Science</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="learnSource">Source (optional)</label>
+                            <input type="text" id="learnSource" placeholder="Book, article, or URL">
+                        </div>
+                    </div>
+                    <button onclick="learnText()">📚 Learn</button>
+                    <div id="learnResult"></div>
+                </div>
+
+                <div class="card">
+                    <h2>📚 Knowledge Base</h2>
+                    <div id="knowledgeContainer">
+                        <div class="loading">Loading knowledge...</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- PAGE: SETTINGS -->
+            <!-- ============================================ -->
+            <section id="page-settings" class="page">
+                <div class="card">
+                    <h2>⚙️ Settings</h2>
+                    <div class="settings-grid">
+                        <div class="setting-item">
+                            <label>Auto-Refresh (seconds)</label>
+                            <input type="number" id="refreshInterval" value="30" min="5" max="300">
+                        </div>
+                        <div class="setting-item">
+                            <label>Theme</label>
+                            <select id="themeSelect">
+                                <option value="dark">Dark</option>
+                                <option value="light">Light</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button onclick="saveSettings()">💾 Save Settings</button>
+                </div>
+
+                <div class="card">
+                    <h2>🧹 Maintenance</h2>
+                    <div class="maintenance-grid">
+                        <button onclick="clearCacheAndRefresh()" class="btn-warning">🔄 Clear Cache</button>
+                        <button onclick="clearAllData()" class="btn-danger">🗑️ Clear All Data</button>
+                        <button onclick="exportData()" class="btn-info">📤 Export Data</button>
+                        <button onclick="importData()" class="btn-info">📥 Import Data</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>📊 System Status</h2>
+                    <div id="systemStatus">
+                        <div class="loading">Loading...</div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>🤖 Unlimited Autonomous AI Agent — Any Task, Any Domain</p>
+            <p><a href="https://ai.taagc.site">ai.taagc.site</a> | © 2026 TAAGC</p>
+        </footer>
+    </div>
+
+    <script src="app.js?v=3.0.0"></script>
+</body>
+</html>
