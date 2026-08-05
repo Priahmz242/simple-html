@@ -3,63 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Unlimited AI Agent</title>
-    
-    <!-- Meta Tags -->
-    <meta name="description" content="Unlimited Autonomous AI Agent - Any Task, Any Domain">
+    <title>Boijelux v7 - Unlimited AI Agent</title>
+    <meta name="description" content="Boijelux v7 - Unlimited AI Agent with Full Internet Access">
     <meta name="theme-color" content="#00cc88">
-    
-    <!-- Open Graph -->
-    <meta property="og:title" content="Unlimited AI Agent">
-    <meta property="og:description" content="Unlimited Autonomous AI Agent - Any Task, Any Domain">
-    <meta property="og:url" content="https://ai.taagc.site">
-    <meta property="og:type" content="website">
-    
-    <!-- Favicon -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
-    
-    <!-- Styles -->
-    <link rel="stylesheet" href="style.css?v=3.0.0">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>">
+    <link rel="stylesheet" href="style.css?v=7.0.0">
 </head>
 <body>
     <div id="app">
         <!-- Navigation -->
-        <nav class="navbar" id="navbar">
+        <nav class="navbar">
             <div class="nav-container">
                 <div class="nav-brand">
-                    <span class="logo-icon">🤖</span>
-                    <span class="logo-text">Unlimited AI</span>
-                    <span class="version-badge">v2.0</span>
+                    <span class="logo-icon">🚀</span>
+                    <span class="logo-text">Boijelux v7</span>
+                    <span class="version-badge">v7.0</span>
                 </div>
-                
                 <div class="nav-links" id="navLinks">
-                    <a href="#" class="nav-link active" data-page="dashboard">
-                        <span class="nav-icon">📊</span> Dashboard
-                    </a>
-                    <a href="#" class="nav-link" data-page="tasks">
-                        <span class="nav-icon">📋</span> Tasks
-                    </a>
-                    <a href="#" class="nav-link" data-page="bots">
-                        <span class="nav-icon">🤖</span> Bots
-                    </a>
-                    <a href="#" class="nav-link" data-page="learn">
-                        <span class="nav-icon">📖</span> Learn
-                    </a>
-                    <a href="#" class="nav-link" data-page="settings">
-                        <span class="nav-icon">⚙️</span> Settings
-                    </a>
+                    <a href="#" class="nav-link active" data-page="dashboard">📊 Dashboard</a>
+                    <a href="#" class="nav-link" data-page="tasks">📋 Tasks</a>
+                    <a href="#" class="nav-link" data-page="bots">🤖 Bots</a>
+                    <a href="#" class="nav-link" data-page="learn">📖 Learn</a>
+                    <a href="#" class="nav-link" data-page="internet">🌐 Internet</a>
+                    <a href="#" class="nav-link" data-page="settings">⚙️ Settings</a>
                 </div>
-                
                 <div class="nav-actions">
-                    <button class="btn-refresh" onclick="refreshData()" title="Refresh Data">
-                        🔄
-                    </button>
+                    <button class="btn-refresh" onclick="refreshData()" title="Refresh">🔄</button>
                     <span class="status-dot online" id="statusDot"></span>
                 </div>
-                
-                <button class="mobile-toggle" id="mobileToggle" onclick="toggleMobileNav()">
-                    ☰
-                </button>
+                <button class="mobile-toggle" onclick="toggleMobileNav()">☰</button>
             </div>
         </nav>
 
@@ -70,7 +42,6 @@
             <!-- PAGE: DASHBOARD -->
             <!-- ============================================ -->
             <section id="page-dashboard" class="page active">
-                <!-- Stats Grid -->
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-icon">📊</div>
@@ -88,11 +59,6 @@
                         <div class="stat-label">Knowledge Items</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-icon">🎯</div>
-                        <div class="stat-value" id="statSuccess">0%</div>
-                        <div class="stat-label">Success Rate</div>
-                    </div>
-                    <div class="stat-card">
                         <div class="stat-icon">🤖</div>
                         <div class="stat-value" id="statBots">0</div>
                         <div class="stat-label">Bots Created</div>
@@ -102,15 +68,17 @@
                         <div class="stat-value" id="statUptime">0s</div>
                         <div class="stat-label">Uptime</div>
                     </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🚀</div>
+                        <div class="stat-value" id="statVersion">v7.0</div>
+                        <div class="stat-label">Version</div>
+                    </div>
                 </div>
 
-                <!-- Status & Quick Task -->
                 <div class="grid-2">
                     <div class="card">
                         <h2>📊 Agent Status</h2>
-                        <div id="statusContainer">
-                            <div class="loading">Loading...</div>
-                        </div>
+                        <div id="statusContainer"><div class="loading">Loading...</div></div>
                     </div>
                     <div class="card">
                         <h2>🚀 Quick Task</h2>
@@ -122,12 +90,9 @@
                     </div>
                 </div>
 
-                <!-- Recent Tasks -->
                 <div class="card">
                     <h2>📋 Recent Tasks</h2>
-                    <div id="tasksContainer">
-                        <div class="loading">Loading tasks...</div>
-                    </div>
+                    <div id="tasksContainer"><div class="loading">Loading tasks...</div></div>
                 </div>
             </section>
 
@@ -137,11 +102,8 @@
             <section id="page-tasks" class="page">
                 <div class="card">
                     <h2>📋 All Tasks</h2>
-                    <div id="allTasksContainer">
-                        <div class="loading">Loading tasks...</div>
-                    </div>
+                    <div id="allTasksContainer"><div class="loading">Loading tasks...</div></div>
                 </div>
-                
                 <div class="card">
                     <h2>➕ Add New Task</h2>
                     <div class="task-form">
@@ -159,8 +121,7 @@
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label for="taskDeadline">Deadline</label>
-                                <input type="date" id="taskDeadline">
+                                <label><input type="checkbox" id="taskInternet"> 🌐 Use Internet</label>
                             </div>
                         </div>
                         <button onclick="processTask()">▶ Process Task</button>
@@ -175,14 +136,8 @@
             <section id="page-bots" class="page">
                 <div class="card">
                     <h2>🤖 Created Bots</h2>
-                    <div id="botsContainer">
-                        <div class="empty-state">
-                            <span class="icon">🤖</span>
-                            <p>No bots created yet</p>
-                        </div>
-                    </div>
+                    <div id="botsContainer"><div class="empty-state"><span class="icon">🤖</span><p>No bots created yet</p></div></div>
                 </div>
-
                 <div class="card">
                     <h2>🔧 Create New Bot</h2>
                     <div class="bot-form">
@@ -196,7 +151,7 @@
                                 <select id="botLocation">
                                     <option value="local">Local</option>
                                     <option value="cloud">Cloud</option>
-                                    <option value="remote">Remote Server</option>
+                                    <option value="remote">Remote</option>
                                 </select>
                             </div>
                             <div class="form-group">
@@ -215,12 +170,11 @@
             <!-- ============================================ -->
             <section id="page-learn" class="page">
                 <div class="card">
-                    <h2>📖 Teach the AI</h2>
+                    <h2>📖 Teach Boijelux</h2>
                     <p class="card-subtitle">Paste text for the AI to learn from.</p>
-                    
                     <div class="form-group">
                         <label for="learnText">Text to Learn</label>
-                        <textarea id="learnText" rows="6" placeholder="Paste text you want the AI to learn from..."></textarea>
+                        <textarea id="learnText" rows="6" placeholder="Paste text..."></textarea>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
@@ -233,22 +187,94 @@
                                 <option value="technology">Technology</option>
                                 <option value="legal">Legal</option>
                                 <option value="creative">Creative</option>
-                                <option value="science">Science</option>
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="learnSource">Source (optional)</label>
+                            <label for="learnSource">Source</label>
                             <input type="text" id="learnSource" placeholder="Book, article, or URL">
                         </div>
                     </div>
                     <button onclick="learnText()">📚 Learn</button>
                     <div id="learnResult"></div>
                 </div>
-
                 <div class="card">
                     <h2>📚 Knowledge Base</h2>
-                    <div id="knowledgeContainer">
-                        <div class="loading">Loading knowledge...</div>
+                    <div id="knowledgeContainer"><div class="loading">Loading knowledge...</div></div>
+                </div>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- PAGE: INTERNET -->
+            <!-- ============================================ -->
+            <section id="page-internet" class="page">
+                <div class="card">
+                    <h2>🌐 Internet Access</h2>
+                    <p class="card-subtitle">Search the web, fetch URLs, or chat with internet access.</p>
+                    
+                    <div class="internet-tabs">
+                        <button class="tab-btn active" onclick="showInternetTab('search')">🔍 Search</button>
+                        <button class="tab-btn" onclick="showInternetTab('fetch')">📄 Fetch URL</button>
+                        <button class="tab-btn" onclick="showInternetTab('chat')">💬 Chat</button>
+                        <button class="tab-btn" onclick="showInternetTab('code')">💻 Code</button>
+                    </div>
+                    
+                    <!-- Search -->
+                    <div id="internet-search" class="internet-panel active">
+                        <div class="form-group">
+                            <label>Search Query</label>
+                            <input type="text" id="searchInput" placeholder="Enter your search query...">
+                        </div>
+                        <button onclick="searchWeb()">🔍 Search Web</button>
+                        <div id="searchResult"></div>
+                    </div>
+                    
+                    <!-- Fetch -->
+                    <div id="internet-fetch" class="internet-panel">
+                        <div class="form-group">
+                            <label>URL to Fetch</label>
+                            <input type="url" id="urlInput" placeholder="https://example.com">
+                        </div>
+                        <button onclick="fetchUrl()">📄 Fetch Content</button>
+                        <div id="urlResult"></div>
+                    </div>
+                    
+                    <!-- Chat -->
+                    <div id="internet-chat" class="internet-panel">
+                        <div class="form-group">
+                            <label>Your Message</label>
+                            <textarea id="chatInput" rows="3" placeholder="Ask anything..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label><input type="checkbox" id="chatInternet" checked> 🌐 Enable Internet Search</label>
+                        </div>
+                        <button onclick="chatWithInternet()">💬 Send</button>
+                        <div id="chatResult"></div>
+                    </div>
+                    
+                    <!-- Code Generation -->
+                    <div id="internet-code" class="internet-panel">
+                        <div class="form-group">
+                            <label>Code Description</label>
+                            <textarea id="codeInput" rows="3" placeholder="Describe the code you need..."></textarea>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="codeLanguage">Language</label>
+                                <select id="codeLanguage">
+                                    <option value="python">Python</option>
+                                    <option value="javascript">JavaScript</option>
+                                    <option value="typescript">TypeScript</option>
+                                    <option value="go">Go</option>
+                                    <option value="rust">Rust</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="codeFramework">Framework</label>
+                                <input type="text" id="codeFramework" placeholder="FastAPI, React, etc.">
+                            </div>
+                        </div>
+                        <button onclick="generateCode()">💻 Generate Code</button>
+                        <div id="codeResult"></div>
                     </div>
                 </div>
             </section>
@@ -287,20 +313,18 @@
 
                 <div class="card">
                     <h2>📊 System Status</h2>
-                    <div id="systemStatus">
-                        <div class="loading">Loading...</div>
-                    </div>
+                    <div id="systemStatus"><div class="loading">Loading...</div></div>
                 </div>
             </section>
         </main>
 
         <!-- Footer -->
         <footer class="footer">
-            <p>🤖 Unlimited Autonomous AI Agent — Any Task, Any Domain</p>
-            <p><a href="https://ai.taagc.site">ai.taagc.site</a> | © 2026 TAAGC</p>
+            <p>🚀 Boijelux v7 — Unlimited AI Agent • Any Task • Any Domain • Anywhere</p>
+            <p><a href="https://ai.taagc.site">ai.taagc.site</a> | © 2026 Boijelux</p>
         </footer>
     </div>
 
-    <script src="app.js?v=3.0.0"></script>
+    <script src="app.js?v=7.0.0"></script>
 </body>
 </html>
