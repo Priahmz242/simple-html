@@ -1,32 +1,68 @@
 """
-Unlimited AI Agent - Debug Version
-Deployed on Vercel
-Full logging for troubleshooting
+Boijelux v7 - Unlimited AI Agent with Full Internet Access
+Deployed on Vercel with FastAPI
+Version: 7.0.0
 """
 
 import time
 import json
-import traceback
+import httpx
+import asyncio
+import re
 from datetime import datetime
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
+from pathlib import Path
+from urllib.parse import urlparse
 
 from fastapi import FastAPI, Request, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, HTMLResponse, PlainTextResponse
+from fastapi.responses import JSONResponse, HTMLResponse, StreamingResponse
 from fastapi.exceptions import RequestValidationError
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, HttpUrl
 import uvicorn
 
 # ============================================
-# DEBUG CONFIGURATION
+# CONFIGURATION
 # ============================================
 
+APP_NAME = "Boijelux v7"
+APP_VERSION = "7.0.0"
+DOMAIN = "ai.taagc.site"
+DEPLOYMENT = "Vercel"
 DEBUG = True
+MAX_WEB_SEARCH_RESULTS = 10
+MAX_CONTENT_LENGTH = 10000
+REQUEST_TIMEOUT = 30
+
+# ============================================
+# FASTAPI APP
+# ============================================
+
+app = FastAPI(
+    title=APP_NAME,
+    version=APP_VERSION,
+    description="Boijelux v7 - Unlimited AI Agent with Full Internet Access",
+    docs_url="/api/docs",
+    redoc_url="/api/redoc",
+)
+
+# CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ============================================
+# REQUEST LOGGING
+# ============================================
+
 REQUEST_LOG = []
 MAX_LOGS = 100
 
 def log_request(method: str, path: str, status: int, duration: float, error: str = None):
-    """Log all requests with details"""
     entry = {
         "timestamp": datetime.now().isoformat(),
         "method": method,
@@ -38,361 +74,352 @@ def log_request(method: str, path: str, status: int, duration: float, error: str
     REQUEST_LOG.append(entry)
     if len(REQUEST_LOG) > MAX_LOGS:
         REQUEST_LOG.pop(0)
-    
-    # Print to console (visible in Vercel logs)
     print(f"📥 {method} {path} → {status} ({entry['duration_ms']}ms)" + (f" ❌ {error}" if error else ""))
-
-# ============================================
-# FASTAPI APP
-# ============================================
-
-app = FastAPI(
-    title="Unlimited AI Agent - Debug",
-    version="2.0.0",
-    description="Debug version with full logging",
-    docs_url="/api/docs",
-    redoc_url="/api/redoc",
-)
-
-# Enable CORS with debug headers
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["X-Debug-Id", "X-Response-Time"],
-)
-
-# ============================================
-# MIDDLEWARE - Request Logger
-# ============================================
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
-    """Log all incoming requests with timing"""
     start_time = time.time()
-    
-    # Get request details
-    method = request.method
-    path = request.url.path
-    headers = dict(request.headers)
-    
-    print(f"\n{'='*70}")
-    print(f"🔵 REQUEST: {method} {path}")
-    print(f"📋 Headers: {json.dumps(headers, indent=2, default=str)}")
-    
-    # Get body for POST/PUT
-    body = None
-    if method in ["POST", "PUT", "PATCH"]:
-        try:
-            body_bytes = await request.body()
-            if body_bytes:
-                body = body_bytes.decode('utf-8')
-                print(f"📦 Body: {body[:500]}..." if len(body) > 500 else f"📦 Body: {body}")
-        except:
-            pass
-    
-    try:
-        response = await call_next(request)
-        duration = time.time() - start_time
-        
-        # Log response
-        log_request(method, path, response.status_code, duration)
-        print(f"✅ RESPONSE: {response.status_code} ({duration*1000:.2f}ms)")
-        print("="*70)
-        
-        # Add debug headers
-        response.headers["X-Debug-Id"] = f"req_{int(start_time*1000)}"
-        response.headers["X-Response-Time"] = f"{duration*1000:.2f}ms"
-        
-        return response
-    except Exception as e:
-        duration = time.time() - start_time
-        error_msg = str(e)
-        log_request(method, path, 500, duration, error_msg)
-        print(f"❌ ERROR: {error_msg}")
-        traceback.print_exc()
-        print("="*70)
-        raise
+    response = await call_next(request)
+    duration = time.time() - start_time
+    log_request(request.method, request.url.path, response.status_code, duration)
+    return response
 
 # ============================================
 # PYDANTIC MODELS
 # ============================================
 
 class TaskRequest(BaseModel):
-    task: str
-    context: Optional[Dict[str, Any]] = None
+    task: str = Field(..., description="The task description to process.")
+    context: Optional[Dict[str, Any]] = Field(default_factory=dict)
 
 class CreateBotRequest(BaseModel):
-    requirements: str
-    location: str = "local"
+    requirements: str = Field(..., description="The requirements for the new bot.")
+    location: str = Field("local")
     name: Optional[str] = None
 
 class LearnRequest(BaseModel):
-    text: str
-    category: str = "general"
-    source: str = "user_input"
+    text: str = Field(..., description="The text content to learn from.")
+    category: str = Field("general")
+    source: Optional[str] = Field("user_input")
 
 class ChatRequest(BaseModel):
-    message: str
+    message: str = Field(..., description="The user's chat message.")
     session_id: Optional[str] = None
+    use_internet: bool = Field(False, description="Whether to use internet search")
+
+class WebSearchRequest(BaseModel):
+    query: str = Field(..., description="The search query.")
+    max_results: int = Field(5, ge=1, le=20)
+
+class UrlFetchRequest(BaseModel):
+    url: HttpUrl = Field(..., description="The URL to fetch.")
+    max_length: int = Field(5000, ge=100, le=50000)
+
+class GenerateCodeRequest(BaseModel):
+    description: str = Field(..., description="Description of the code to generate.")
+    language: str = Field("python", description="Programming language")
+    framework: Optional[str] = None
 
 # ============================================
 # IN-MEMORY STORAGE
 # ============================================
 
-tasks_db = []
-bots_db = []
-knowledge_db = []
+tasks_db: List[Dict] = []
+bots_db: List[Dict] = []
+knowledge_db: List[Dict] = []
+logs_db: List[Dict] = []
 task_counter = 0
+chat_history: List[Dict] = []
 
 # ============================================
-# ROUTES
+# INTERNET ACCESS HELPERS
 # ============================================
+
+async def fetch_url_content(url: str, max_length: int = 5000) -> Dict:
+    """Fetch content from a URL"""
+    try:
+        async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT, follow_redirects=True) as client:
+            response = await client.get(url)
+            response.raise_for_status()
+            
+            content_type = response.headers.get('content-type', '').lower()
+            content = response.text
+            
+            if len(content) > max_length:
+                content = content[:max_length] + "... (truncated)"
+            
+            return {
+                "success": True,
+                "url": str(url),
+                "title": _extract_title(content),
+                "content": content,
+                "content_type": content_type,
+                "length": len(response.text),
+                "status_code": response.status_code
+            }
+    except httpx.TimeoutException:
+        return {"success": False, "error": "Request timed out"}
+    except httpx.HTTPStatusError as e:
+        return {"success": False, "error": f"HTTP {e.response.status_code}"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+def _extract_title(html_content: str) -> str:
+    """Extract title from HTML content"""
+    match = re.search(r'<title>(.*?)</title>', html_content, re.IGNORECASE)
+    return match.group(1).strip() if match else "Untitled"
+
+async def search_web(query: str, max_results: int = 5) -> Dict:
+    """Search the web using DuckDuckGo HTML (free, no API key)"""
+    try:
+        search_url = f"https://html.duckduckgo.com/html/?q={query.replace(' ', '+')}"
+        
+        async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT, follow_redirects=True) as client:
+            response = await client.get(search_url)
+            response.raise_for_status()
+            
+            html = response.text
+            
+            # Extract search results
+            results = []
+            blocks = re.findall(r'<a rel="nofollow" class="result__a" href="(.*?)".*?>(.*?)</a>', html, re.DOTALL)
+            snippets = re.findall(r'<a class="result__snippet".*?>(.*?)</a>', html, re.DOTALL)
+            
+            for i, (url, title) in enumerate(blocks[:max_results]):
+                if i < len(snippets):
+                    snippet = re.sub(r'<[^>]+>', '', snippets[i]).strip()
+                else:
+                    snippet = ""
+                results.append({
+                    "title": re.sub(r'<[^>]+>', '', title).strip(),
+                    "url": url,
+                    "snippet": snippet
+                })
+            
+            return {
+                "success": True,
+                "query": query,
+                "results": results,
+                "count": len(results)
+            }
+    except Exception as e:
+        return {"success": False, "error": str(e), "results": []}
+
+async def generate_code(description: str, language: str = "python", framework: str = None) -> Dict:
+    """Generate code based on description (simplified)"""
+    # This is a simplified code generator
+    # In production, this would use an LLM API
+    
+    templates = {
+        "python": {
+            "default": f'''
+"""
+Generated Python Code
+Description: {description}
+Generated by Boijelux v7
+"""
+
+def main():
+    print("Boijelux v7 Generated Code")
+    print(f"Task: {description}")
+
+if __name__ == "__main__":
+    main()
+''',
+            "fastapi": f'''
+"""
+FastAPI Endpoint
+Generated by Boijelux v7
+"""
+
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse
+
+app = FastAPI()
 
 @app.get("/")
 async def root():
-    """Root endpoint - serves HTML dashboard with debug info"""
-    html = """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Unlimited AI Agent - Debug</title>
-        <style>
-            * { margin:0; padding:0; box-sizing:border-box; }
-            body {
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                background: #0a0a0a;
-                color: #fff;
-                min-height: 100vh;
-                padding: 20px;
-            }
-            .container { max-width: 1200px; margin: 0 auto; }
-            header {
-                text-align: center;
-                padding: 40px 0;
-                border-bottom: 1px solid rgba(255,255,255,0.1);
-                margin-bottom: 30px;
-            }
-            h1 { font-size: 2.5rem; }
-            .icon { font-size: 3rem; }
-            .status {
-                display: inline-block;
-                padding: 6px 16px;
-                background: #00cc88;
-                color: #000;
-                border-radius: 20px;
-                font-weight: bold;
-                margin: 10px 0;
-            }
-            .debug-badge {
-                display: inline-block;
-                padding: 4px 12px;
-                background: #ffaa00;
-                color: #000;
-                border-radius: 12px;
-                font-size: 0.8rem;
-                font-weight: bold;
-                margin-left: 10px;
-            }
-            .grid {
-                display: grid;
-                grid-template-columns: 1fr 1fr 1fr;
-                gap: 20px;
-                margin: 30px 0;
-            }
-            .card {
-                background: rgba(255,255,255,0.05);
-                border: 1px solid rgba(255,255,255,0.1);
-                border-radius: 12px;
-                padding: 20px;
-                text-align: center;
-            }
-            .card .value { font-size: 2rem; font-weight: bold; color: #00cc88; }
-            .card .label { color: #888; font-size: 0.9rem; margin-top: 5px; }
-            .endpoints {
-                background: rgba(255,255,255,0.03);
-                border-radius: 12px;
-                padding: 20px;
-                margin: 20px 0;
-                font-family: monospace;
-                font-size: 0.9rem;
-            }
-            .endpoints .item {
-                padding: 8px 0;
-                border-bottom: 1px solid rgba(255,255,255,0.05);
-            }
-            .method {
-                display: inline-block;
-                padding: 2px 10px;
-                border-radius: 4px;
-                font-weight: bold;
-                margin-right: 10px;
-            }
-            .method.get { background: #00cc88; color: #000; }
-            .method.post { background: #ffaa00; color: #000; }
-            .path { color: #00cc88; }
-            .debug-section {
-                background: rgba(255,255,255,0.03);
-                border-radius: 12px;
-                padding: 20px;
-                margin: 20px 0;
-            }
-            .debug-section h3 { color: #ffaa00; margin-bottom: 10px; }
-            .log-entry {
-                padding: 4px 0;
-                border-bottom: 1px solid rgba(255,255,255,0.03);
-                font-family: monospace;
-                font-size: 0.8rem;
-                color: #888;
-            }
-            .log-entry .time { color: #555; }
-            .log-entry .success { color: #00cc88; }
-            .log-entry .error { color: #ff4444; }
-            .footer { text-align: center; padding: 20px; color: #555; margin-top: 30px; border-top: 1px solid rgba(255,255,255,0.1); }
-            a { color: #00cc88; text-decoration: none; }
-            @media (max-width: 768px) {
-                .grid { grid-template-columns: 1fr; }
-                h1 { font-size: 1.8rem; }
-            }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <header>
-                <div class="icon">🤖</div>
-                <h1>Unlimited AI Agent <span class="debug-badge">🔍 DEBUG</span></h1>
-                <p style="color:#888;">Powered by FastAPI | Deployed on Vercel</p>
-                <div class="status">● Online</div>
-            </header>
+    return {{"message": "Boijelux v7 API"}}
 
-            <div class="grid">
-                <div class="card">
-                    <div class="value" id="statTasks">0</div>
-                    <div class="label">Tasks Completed</div>
-                </div>
-                <div class="card">
-                    <div class="value" id="statUptime">0s</div>
-                    <div class="label">Uptime</div>
-                </div>
-                <div class="card">
-                    <div class="value" id="statLogs">0</div>
-                    <div class="label">Requests Logged</div>
-                </div>
-            </div>
+@app.get("/health")
+async def health():
+    return {{"status": "healthy"}}
+'''
+        },
+        "javascript": {
+            "default": f'''
+// Generated JavaScript Code
+// Description: {description}
+// Generated by Boijelux v7
 
-            <div class="debug-section">
-                <h3>📡 API Endpoints (Debug Mode)</h3>
-                <div class="endpoints">
-                    <div class="item"><span class="method get">GET</span> <span class="path">/</span> <span style="color:#888;">— Dashboard</span></div>
-                    <div class="item"><span class="method get">GET</span> <span class="path">/api/health</span> <span style="color:#888;">— Health check</span></div>
-                    <div class="item"><span class="method get">GET</span> <span class="path">/api/status</span> <span style="color:#888;">— Agent status</span></div>
-                    <div class="item"><span class="method get">GET</span> <span class="path">/api/tasks</span> <span style="color:#888;">— List tasks</span></div>
-                    <div class="item"><span class="method post">POST</span> <span class="path">/api/task</span> <span style="color:#888;">— Process task</span></div>
-                    <div class="item"><span class="method post">POST</span> <span class="path">/api/create_bot</span> <span style="color:#888;">— Create bot</span></div>
-                    <div class="item"><span class="method post">POST</span> <span class="path">/api/learn</span> <span style="color:#888;">— Learn</span></div>
-                    <div class="item"><span class="method get">GET</span> <span class="path">/api/debug/logs</span> <span style="color:#888;">— View logs</span></div>
-                    <div class="item"><span class="method get">GET</span> <span class="path">/api/docs</span> <span style="color:#888;">— API Docs</span></div>
-                </div>
-            </div>
+function main() {{
+    console.log("Boijelux v7 Generated Code");
+    console.log("Task: {description}");
+}}
 
-            <div class="debug-section">
-                <h3>📋 Recent Requests</h3>
-                <div id="logsContainer">
-                    <div style="color:#555;text-align:center;padding:20px;">Loading logs...</div>
-                </div>
-            </div>
+main();
+'''
+        }
+    }
+    
+    lang_templates = templates.get(language, templates["python"])
+    
+    if framework and framework.lower() in lang_templates:
+        code = lang_templates[framework.lower()]
+    else:
+        code = lang_templates["default"]
+    
+    return {
+        "success": True,
+        "language": language,
+        "framework": framework,
+        "code": code,
+        "description": description
+    }
 
-            <div class="footer">
-                <p>🤖 Unlimited Autonomous AI Agent — Debug Mode</p>
-                <p><a href="https://ai.taagc.site">ai.taagc.site</a> | © 2026 TAAGC</p>
-            </div>
-        </div>
+# ============================================
+# AI PROCESSING ENGINE
+# ============================================
 
-        <script>
-            // Load stats and logs
-            async function loadData() {
-                try {
-                    // Status
-                    const res1 = await fetch('/api/status');
-                    const data = await res1.json();
-                    if (data.status === 'success') {
-                        document.getElementById('statTasks').textContent = data.agent?.tasks_completed || 0;
-                        document.getElementById('statUptime').textContent = formatUptime(data.agent?.uptime || 0);
-                    }
-                } catch(e) { console.error('Status error:', e); }
-
-                try {
-                    // Logs
-                    const res2 = await fetch('/api/debug/logs');
-                    const logs = await res2.json();
-                    if (logs.status === 'success') {
-                        document.getElementById('statLogs').textContent = logs.count || 0;
-                        const container = document.getElementById('logsContainer');
-                        if (logs.logs && logs.logs.length > 0) {
-                            let html = '';
-                            logs.logs.slice().reverse().forEach(log => {
-                                const statusClass = log.status >= 400 ? 'error' : 'success';
-                                html += `
-                                    <div class="log-entry">
-                                        <span class="time">${log.timestamp}</span>
-                                        <span class="${statusClass}">${log.method} ${log.path}</span>
-                                        <span style="color:#555;">→ ${log.status} (${log.duration_ms}ms)</span>
-                                    </div>
-                                `;
-                            });
-                            container.innerHTML = html;
-                        } else {
-                            container.innerHTML = '<div style="color:#555;text-align:center;padding:20px;">No requests yet</div>';
-                        }
-                    }
-                } catch(e) { console.error('Logs error:', e); }
-            }
-
-            function formatUptime(seconds) {
-                if (seconds < 60) return Math.floor(seconds) + 's';
-                if (seconds < 3600) return Math.floor(seconds / 60) + 'm';
-                if (seconds < 86400) return Math.floor(seconds / 3600) + 'h';
-                return Math.floor(seconds / 86400) + 'd';
-            }
-
-            // Initial load
-            loadData();
-            // Refresh every 5 seconds
-            setInterval(loadData, 5000);
-        </script>
-    </body>
-    </html>
-    """
-    return HTMLResponse(content=html)
+async def process_with_ai(task: str, context: Dict = None, use_internet: bool = False) -> Dict:
+    """Process task with optional internet access"""
+    context = context or {}
+    
+    # Domain detection
+    domain = "general"
+    domain_keywords = {
+        'finance': ['finance', 'trade', 'investment', 'stock', 'market', 'bitcoin', 'crypto', 'price'],
+        'business': ['business', 'company', 'strategy', 'management', 'ceo', 'organization'],
+        'healthcare': ['health', 'doctor', 'patient', 'medical', 'hospital', 'disease'],
+        'technology': ['technology', 'software', 'programming', 'code', 'database', 'system'],
+        'legal': ['legal', 'law', 'contract', 'rights', 'court', 'attorney'],
+        'creative': ['creative', 'design', 'art', 'music', 'writing', 'content']
+    }
+    for d, keywords in domain_keywords.items():
+        if any(kw in task.lower() for kw in keywords):
+            domain = d
+            break
+    
+    # Internet search if requested
+    internet_data = None
+    if use_internet:
+        search_result = await search_web(task, 3)
+        if search_result.get('success'):
+            internet_data = search_result.get('results', [])
+    
+    return {
+        "success": True,
+        "message": f"Task processed: {task}",
+        "domain": domain,
+        "analysis": f"AI analyzed: {task[:100]}...",
+        "suggestions": [
+            "Break the task into smaller steps",
+            "Use relevant data sources",
+            "Monitor progress regularly"
+        ],
+        "internet_used": use_internet,
+        "internet_data": internet_data,
+        "confidence": 0.85,
+        "timestamp": datetime.now().isoformat()
+    }
 
 # ============================================
 # API ENDPOINTS
 # ============================================
 
+@app.get("/")
+async def root():
+    """Serve the main dashboard."""
+    try:
+        file_path = Path(__file__).parent.parent / 'public' / 'index.html'
+        if file_path.exists():
+            with open(file_path, 'r') as f:
+                return HTMLResponse(content=f.read())
+    except:
+        pass
+    
+    html_content = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Boijelux v7</title>
+        <style>
+            * { margin:0; padding:0; box-sizing:border-box; }
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+                color: #fff;
+                min-height: 100vh;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                padding: 20px;
+            }
+            .container {
+                max-width: 800px;
+                padding: 40px;
+                background: rgba(255,255,255,0.05);
+                border-radius: 20px;
+                border: 1px solid rgba(255,255,255,0.1);
+                text-align: center;
+            }
+            h1 { font-size: 2.5rem; margin-bottom: 10px; }
+            .icon { font-size: 3rem; }
+            .status { color: #00cc88; margin: 20px 0; }
+            .version { color: #888; font-size: 0.9rem; }
+            .footer { margin-top: 30px; color: #555; font-size: 0.8rem; }
+            a { color: #00cc88; text-decoration: none; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="icon">🚀</div>
+            <h1>Boijelux v7</h1>
+            <p class="version">Unlimited AI Agent with Full Internet Access</p>
+            <p class="status">● Online & Running</p>
+            <p><a href="/api/docs">📚 API Documentation</a></p>
+            <p style="color:#888;margin-top:20px;">🤖 Any Task • Any Domain • Anywhere</p>
+            <div class="footer">© 2026 Boijelux</div>
+        </div>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content)
+
+# ============================================
+# CORE API ENDPOINTS
+# ============================================
+
 @app.get("/api/health")
 async def health_check():
-    """Health check endpoint"""
     return {
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
-        "version": "2.0.0",
-        "debug": DEBUG
+        "version": APP_VERSION,
+        "name": APP_NAME
+    }
+
+@app.get("/api/version")
+async def get_version():
+    return {
+        "name": APP_NAME,
+        "version": APP_VERSION,
+        "domain": DOMAIN,
+        "deployment": DEPLOYMENT,
+        "uptime": time.time() - app.state.start_time if hasattr(app.state, 'start_time') else 0
     }
 
 @app.get("/api/status")
 async def get_status():
-    """Agent status"""
     return {
         "status": "success",
-        "domain": "ai.taagc.site",
-        "server": "Vercel",
+        "domain": DOMAIN,
+        "server": DEPLOYMENT,
         "timestamp": datetime.now().isoformat(),
         "debug": DEBUG,
         "agent": {
-            "name": "UnlimitedAI",
-            "version": "2.0.0",
+            "name": APP_NAME,
+            "version": APP_VERSION,
             "state": "online",
             "tasks_completed": len([t for t in tasks_db if t.get('status') == 'completed']),
             "uptime": time.time() - app.state.start_time if hasattr(app.state, 'start_time') else 0,
@@ -407,62 +434,48 @@ async def get_status():
                 "Self-learning",
                 "Self-repairing",
                 "Self-upgrading",
-                "Self-replicating"
+                "Self-replicating",
+                "Internet search",
+                "Code generation"
             ]
         }
     }
 
+@app.get("/api/metrics")
+async def get_metrics():
+    return {
+        "tasks_total": len(tasks_db),
+        "tasks_completed": len([t for t in tasks_db if t.get('status') == 'completed']),
+        "bots_created": len(bots_db),
+        "knowledge_items": len(knowledge_db),
+        "logs_count": len(logs_db),
+        "version": APP_VERSION
+    }
+
 @app.get("/api/tasks")
 async def get_tasks():
-    """List all tasks"""
     return {
         "status": "success",
         "count": len(tasks_db),
-        "tasks": tasks_db
+        "tasks": tasks_db[-50:]
     }
 
 @app.post("/api/task")
 async def create_task(request: TaskRequest):
-    """Process a task"""
+    """Process a task with optional internet access"""
     global task_counter
     task_counter += 1
     
-    # Log the request
-    print(f"📝 Processing task: {request.task}")
-    print(f"   Context: {request.context}")
-    
-    # Simple domain detection
-    domain = "general"
-    domain_keywords = {
-        'finance': ['finance', 'trade', 'investment', 'stock', 'market', 'bitcoin', 'crypto'],
-        'business': ['business', 'company', 'strategy', 'management'],
-        'healthcare': ['health', 'doctor', 'patient', 'medical'],
-        'technology': ['technology', 'software', 'programming', 'code']
-    }
-    for d, keywords in domain_keywords.items():
-        if any(kw in request.task.lower() for kw in keywords):
-            domain = d
-            break
-    
-    result = {
-        "success": True,
-        "message": f"Task processed: {request.task}",
-        "domain": domain,
-        "analysis": f"AI analyzed: {request.task[:100]}",
-        "suggestions": [
-            "Break the task into smaller steps",
-            "Use relevant data sources",
-            "Monitor progress regularly"
-        ],
-        "timestamp": datetime.now().isoformat()
-    }
+    use_internet = request.context.get('use_internet', False)
+    result = await process_with_ai(request.task, request.context, use_internet)
     
     task_entry = {
         "id": str(task_counter),
         "description": request.task,
         "context": request.context,
-        "status": "completed",
+        "status": "completed" if result.get('success') else "failed",
         "created": datetime.now().isoformat(),
+        "completed": datetime.now().isoformat(),
         "result": result
     }
     tasks_db.append(task_entry)
@@ -475,7 +488,6 @@ async def create_task(request: TaskRequest):
 
 @app.post("/api/create_bot")
 async def create_bot(request: CreateBotRequest):
-    """Create a new bot"""
     bot = {
         "name": request.name or f"Bot_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
         "requirements": request.requirements,
@@ -490,11 +502,11 @@ async def create_bot(request: CreateBotRequest):
     }
 
 @app.post("/api/learn")
-async def learn(request: LearnRequest):
-    """Learn from text"""
+async def learn_text(request: LearnRequest):
     knowledge_item = {
         "id": len(knowledge_db) + 1,
         "text": request.text[:200] + "..." if len(request.text) > 200 else request.text,
+        "full_text": request.text,
         "category": request.category,
         "source": request.source,
         "learned": datetime.now().isoformat()
@@ -503,13 +515,89 @@ async def learn(request: LearnRequest):
     return {
         "status": "success",
         "message": "Learning successful",
-        "knowledge": knowledge_item,
+        "knowledge": knowledge_item
+    }
+
+@app.get("/api/knowledge")
+async def get_knowledge():
+    return {
+        "status": "success",
+        "count": len(knowledge_db),
+        "knowledge": knowledge_db[-50:]
+    }
+
+# ============================================
+# INTERNET ACCESS ENDPOINTS
+# ============================================
+
+@app.post("/api/search")
+async def web_search(request: WebSearchRequest):
+    """Search the web using DuckDuckGo"""
+    result = await search_web(request.query, request.max_results)
+    return {
+        "status": "success" if result.get('success') else "error",
+        "data": result
+    }
+
+@app.post("/api/fetch")
+async def fetch_url(request: UrlFetchRequest):
+    """Fetch and extract content from a URL"""
+    result = await fetch_url_content(str(request.url), request.max_length)
+    return {
+        "status": "success" if result.get('success') else "error",
+        "data": result
+    }
+
+@app.post("/api/chat")
+async def chat(request: ChatRequest):
+    """Chat endpoint with optional internet search"""
+    internet_context = None
+    if request.use_internet:
+        search_result = await search_web(request.message, 3)
+        if search_result.get('success'):
+            internet_context = search_result.get('results', [])
+    
+    chat_entry = {
+        "session_id": request.session_id or "new-session",
+        "message": request.message,
+        "response": f"Boijelux v7 received: '{request.message}'",
+        "internet_used": request.use_internet,
         "timestamp": datetime.now().isoformat()
     }
+    
+    if internet_context:
+        chat_entry["internet_results"] = internet_context[:3]
+    
+    chat_history.append(chat_entry)
+    
+    return {
+        "status": "success",
+        "chat": chat_entry
+    }
+
+@app.post("/api/generate_code")
+async def generate_code_endpoint(request: GenerateCodeRequest):
+    """Generate code based on description"""
+    result = await generate_code(request.description, request.language, request.framework)
+    return {
+        "status": "success" if result.get('success') else "error",
+        "data": result
+    }
+
+@app.get("/api/chat/history")
+async def get_chat_history():
+    return {
+        "status": "success",
+        "count": len(chat_history),
+        "history": chat_history[-50:]
+    }
+
+# ============================================
+# DEBUG ENDPOINTS
+# ============================================
 
 @app.get("/api/debug/logs")
 async def get_logs():
-    """Get all request logs"""
     return {
         "status": "success",
         "count": len(REQUEST_LOG),
@@ -518,7 +606,6 @@ async def get_logs():
 
 @app.get("/api/debug/echo")
 async def echo(request: Request):
-    """Echo back request details for debugging"""
     return {
         "method": request.method,
         "url": str(request.url),
@@ -528,12 +615,18 @@ async def echo(request: Request):
 
 @app.get("/api/test")
 async def test():
-    """Simple test endpoint"""
     return {
         "status": "success",
-        "message": "FastAPI is working!",
+        "message": "Boijelux v7 is working!",
+        "version": APP_VERSION,
         "timestamp": datetime.now().isoformat(),
-        "debug": DEBUG
+        "features": [
+            "Web search (DuckDuckGo)",
+            "URL fetching",
+            "Chat with internet",
+            "Task processing with internet",
+            "Code generation"
+        ]
     }
 
 # ============================================
@@ -542,27 +635,16 @@ async def test():
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    print(f"❌ Validation Error: {exc.errors()}")
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content={
-            "status": "error",
-            "detail": exc.errors(),
-            "body": exc.body
-        },
+        content={"status": "error", "detail": exc.errors()},
     )
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    print(f"❌ Global Exception: {str(exc)}")
-    traceback.print_exc()
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={
-            "status": "error",
-            "message": str(exc),
-            "type": type(exc).__name__
-        },
+        content={"status": "error", "message": str(exc)},
     )
 
 # ============================================
@@ -573,10 +655,11 @@ async def global_exception_handler(request: Request, exc: Exception):
 async def startup_event():
     app.state.start_time = time.time()
     print(f"\n{'='*70}")
-    print(f"🚀 Unlimited AI Agent v2.0.0 - DEBUG MODE")
+    print(f"🚀 {APP_NAME} v{APP_VERSION} - Ready")
     print(f"📅 Started at: {datetime.now().isoformat()}")
-    print(f"🌐 Domain: ai.taagc.site")
+    print(f"🌐 Domain: {DOMAIN}")
     print(f"🔍 Debug: {DEBUG}")
+    print(f"📡 Internet: DuckDuckGo Search + URL Fetch")
     print(f"📚 Docs: /api/docs")
     print(f"{'='*70}\n")
 
